@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Changed
+
+- Package identity is `@hexorx/omp-typesafe` for public npm distribution (`publishConfig.access: public`), with repository/homepage/bugs pointing at https://github.com/hexorx/omp-typesafe. Consumer imports, CI package smoke, and release tarball names use the scoped package; on-disk key/usage storage under `~/.omp/agent/omp-typesafe` is unchanged. Still an omp port of [pi-typesafe](https://github.com/DevMortimer/pi-typesafe).
+
 ### Fixed
 
 - Headless `/typesafe` output and startup warnings stay out of model context. They go to the omp log and a `typesafe-status` session entry; `sendMessage` is no longer used for them.

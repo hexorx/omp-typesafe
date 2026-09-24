@@ -1,11 +1,11 @@
 # API
 
-Everything `omp-typesafe` exports, for extension authors. The library has no dependency on omp's runtime and is safe in tests. The README covers the tool, the commands, and how to write questions.
+Everything `@hexorx/omp-typesafe` exports, for extension authors. The library has no dependency on omp's runtime and is safe in tests. The README covers the tool, the commands, and how to write questions.
 
 ## The client
 
 ```ts
-import { createTypeSafe, choice, noul, score } from "omp-typesafe";
+import { createTypeSafe, choice, noul, score } from "@hexorx/omp-typesafe";
 
 const typesafe = createTypeSafe({ maxRequests: 5, maxUsdPerDay: 1 });
 const result = await typesafe.evaluate({
@@ -84,21 +84,21 @@ The environment may lower an explicit cap, never raise it. A reached cap raises 
 ## Asking without throwing
 
 ```ts
-import { ask } from "omp-typesafe";
+import { ask } from "@hexorx/omp-typesafe";
 
 const answer = await ask(typesafe, request, { timeoutMs: 5_000, signal: mySignal });
 if (!answer.ok) return { skipped: answer.errorCode === "budget" };
 answer.answers; // typed, plus model, usage, elapsedMs
 ```
 
-`ask` merges its deadline into your signal, takes any object with `evaluate` (so tests pass a stub), and never throws: a failure is `{ ok: false, error, errorCode }` with omp-typesafe's own message. Unknown failures become a fixed message, so nothing from the transport reaches the user.
+`ask` merges its deadline into your signal, takes any object with `evaluate` (so tests pass a stub), and never throws: a failure is `{ ok: false, error, errorCode }` with `@hexorx/omp-typesafe`'s own message. Unknown failures become a fixed message, so nothing from the transport reaches the user.
 
-## Calibration: `omp-typesafe/calibrate`
+## Calibration: `@hexorx/omp-typesafe/calibrate`
 
 A small, domain-free toolkit for turning labelled cases into thresholds.
 
 ```ts
-import { calibrate, formatCalibration, replay, samplesOf } from "omp-typesafe/calibrate";
+import { calibrate, formatCalibration, replay, samplesOf } from "@hexorx/omp-typesafe/calibrate";
 
 const results = await replay(cases, data => scoreOne(data), { concurrency: 6 });
 console.log(formatCalibration(calibrate("action guard", samplesOf(results).samples, { minPrecision: 0.8 })));
@@ -114,7 +114,7 @@ console.log(formatCalibration(calibrate("action guard", samplesOf(results).sampl
 
 `replay` stops on a `budget` failure like the batching calls, and reports each failure with the scorer's own message unless you pass `describeError`.
 
-## Login helpers: `omp-typesafe/ui`
+## Login helpers: `@hexorx/omp-typesafe/ui`
 
 `ensureApiKey(ctx, { backend })`, `loginWithPrompt(ctx)`, and `promptForApiKey(ctx)` use the same hidden input as `/typesafe login`. `ensureApiKey(ctx)` returns the existing key source, or prompts, verifies, and stores a new TypeSafe key (`undefined` when the user cancels). For any other backend it returns the environment source or throws `configuration` naming the variable to set; it never opens the prompt, because the prompt verifies against api.typesafe.ai and writes the TypeSafe store. These need Pi's TUI, so call them only from extension command handlers.
 

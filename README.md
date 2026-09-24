@@ -1,4 +1,4 @@
-# omp-typesafe
+# @hexorx/omp-typesafe
 
 [Jev](https://typesafe.ai) inside [omp](https://omp.sh). Jev is TypeSafe's judgment model: send it some state and typed questions and it returns probabilities instead of prose, in well under a second, for a fraction of a cent. This package gives omp three things built on it.
 
@@ -86,7 +86,7 @@ An enabled extension with no usable key looks exactly like a working one — one
 
 The environment may lower an explicit cap but never raise it. A reached cap raises a `budget` error naming the cap, the amount used, and the day.
 
-Need more than one request? `evaluateAll(request)` asks any number of questions about one state (over 32 are chunked and fanned out), and `evaluateMany(requests)` runs several requests at once. Both preserve order, bound concurrency, never throw, and stop submitting once the budget is gone. [`omp-typesafe/calibrate`](docs/api.md#calibration-omp-typesafecalibrate) turns labelled cases into thresholds with AUC, a sweep, and a replay runner.
+Need more than one request? `evaluateAll(request)` asks any number of questions about one state (over 32 are chunked and fanned out), and `evaluateMany(requests)` runs several requests at once. Both preserve order, bound concurrency, never throw, and stop submitting once the budget is gone. [`@hexorx/omp-typesafe/calibrate`](docs/api.md#calibration-hexorxomp-typesafecalibrate) turns labelled cases into thresholds with AUC, a sweep, and a replay runner.
 
 ## Commands
 
@@ -125,7 +125,7 @@ Per request: 32 questions and 64 KiB of JSON. Per session: 20 attempts, 15-secon
 Import the library from your own extension. It has no dependency on omp's runtime and is safe in tests.
 
 ```ts
-import { ask, createTypeSafe, choice, noul, score } from "omp-typesafe";
+import { ask, createTypeSafe, choice, noul, score } from "@hexorx/omp-typesafe";
 
 const typesafe = createTypeSafe({ maxRequests: 5, maxUsdPerDay: 1 });  // key: TYPESAFE_API_KEY, else the login store
 const answer = await ask(typesafe, {
@@ -141,7 +141,7 @@ if (!answer.ok) return { skipped: answer.errorCode === "budget" };  // never thr
 
 Your extension owns its own user consent and budget; `/typesafe enable` applies only to this package's tool. Check `authState()` rather than your own consent flag before you report that judgments are on.
 
-Judgments can also go through OpenRouter: `createTypeSafe({ backend: "openrouter" })` sends them to `openrouter.ai` with the key from `OPENROUTER_API_KEY`. That backend has no login store, so `/typesafe login` does not apply to it. Pass the same `backend` to `authState`, `keySituation`, and `ensureApiKey`, or the status you report describes the TypeSafe key while the requests use another one. The `/typesafe` commands and the `typesafe_evaluate` tool always use the TypeSafe backend. Every export — the client, `ask`, batching, the usage ledger, auth state, and the `omp-typesafe/calibrate` and `omp-typesafe/ui` entry points — is in [docs/api.md](docs/api.md).
+Judgments can also go through OpenRouter: `createTypeSafe({ backend: "openrouter" })` sends them to `openrouter.ai` with the key from `OPENROUTER_API_KEY`. That backend has no login store, so `/typesafe login` does not apply to it. Pass the same `backend` to `authState`, `keySituation`, and `ensureApiKey`, or the status you report describes the TypeSafe key while the requests use another one. The `/typesafe` commands and the `typesafe_evaluate` tool always use the TypeSafe backend. Every export — the client, `ask`, batching, the usage ledger, auth state, and the `@hexorx/omp-typesafe/calibrate` and `@hexorx/omp-typesafe/ui` entry points — is in [docs/api.md](docs/api.md).
 
 ## Development
 

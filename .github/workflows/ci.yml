@@ -79,9 +79,12 @@ jobs:
           import { readFileSync } from 'node:fs';
           const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
           const lock = JSON.parse(readFileSync('package-lock.json', 'utf8'));
-          assert.equal(pkg.name, 'omp-typesafe');
+          assert.equal(pkg.name, '@hexorx/omp-typesafe');
+          assert.equal(lock.name, pkg.name, 'Lockfile name must match package.json');
+          assert.equal(lock.packages[''].name, pkg.name, 'Lockfile root name must match package.json');
           assert.equal(lock.version, pkg.version, 'Lockfile version must match package.json');
           assert.equal(lock.packages[''].version, pkg.version, 'Lockfile root version must match package.json');
+          assert.equal(pkg.publishConfig?.access, 'public', 'Scoped package must publish publicly');
           NODE
       - name: Validate release tag and extract release notes
         if: startsWith(github.ref, 'refs/tags/')
@@ -107,21 +110,22 @@ jobs:
           mkdir -p "$RUNNER_TEMP/package-smoke"
           printf '%s\n' '{"private":true,"type":"module"}' > "$RUNNER_TEMP/package-smoke/package.json"
           # Resolve dependencies as a consumer, without the checkout's lockfile or node_modules.
-          npm install --prefix "$RUNNER_TEMP/package-smoke" --ignore-scripts --omit=peer --no-audit --no-fund "$RUNNER_TEMP/package"/omp-typesafe-*.tgz
+          # Scoped npm pack names drop the @ and turn / into -: @hexorx/omp-typesafe -> hexorx-omp-typesafe-*.tgz
+          npm install --prefix "$RUNNER_TEMP/package-smoke" --ignore-scripts --omit=peer --no-audit --no-fund "$RUNNER_TEMP/package"/hexorx-omp-typesafe-*.tgz
           cd "$RUNNER_TEMP/package-smoke"
           node --input-type=module <<'NODE'
           import assert from 'node:assert/strict';
           import { readFileSync, statSync } from 'node:fs';
           import { dirname, resolve } from 'node:path';
           import { fileURLToPath } from 'node:url';
-          import { createTypeSafe, noul } from 'omp-typesafe';
-          import { auc } from 'omp-typesafe/calibrate';
+          import { createTypeSafe, noul } from '@hexorx/omp-typesafe';
+          import { auc } from '@hexorx/omp-typesafe/calibrate';
           assert.equal(typeof createTypeSafe, 'function');
           assert.equal(noul('Is this a package smoke test?').type, 'noul');
           assert.equal(auc([{ label: false, score: 0 }, { label: true, score: 1 }]), 1);
-          const metadataPath = fileURLToPath(import.meta.resolve('omp-typesafe/package.json'));
+          const metadataPath = fileURLToPath(import.meta.resolve('@hexorx/omp-typesafe/package.json'));
           const metadata = JSON.parse(readFileSync(metadataPath, 'utf8'));
-          assert.equal(metadata.name, 'omp-typesafe');
+          assert.equal(metadata.name, '@hexorx/omp-typesafe');
           for (const peer of Object.keys(metadata.peerDependencies)) {
             assert.throws(() => import.meta.resolve(peer), { code: 'ERR_MODULE_NOT_FOUND' });
           }
@@ -138,7 +142,8 @@ jobs:
           const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
           const lock = JSON.parse(readFileSync('package-lock.json', 'utf8'));
           const dependencies = Object.fromEntries(Object.keys(pkg.peerDependencies).map(name => [name, lock.packages[`node_modules/${name}`].version]));
-          dependencies[pkg.name] = `file:${resolve(process.env.RUNNER_TEMP, 'package', `${pkg.name}-${pkg.version}.tgz`)}`;
+          const tarball = `${pkg.name.replace(/^@/, '').replace(/\//g, '-')}-${pkg.version}.tgz`;
+          dependencies[pkg.name] = `file:${resolve(process.env.RUNNER_TEMP, 'package', tarball)}`;
           writeFileSync(`${process.env.RUNNER_TEMP}/package-smoke/package.json`, JSON.stringify({ private: true, type: 'module', dependencies }));
           NODE
           # Add the locked omp peers to the same isolated consumer installation.
@@ -147,11 +152,11 @@ jobs:
           bun --input-type=module - <<'NODE'
           import assert from 'node:assert/strict';
           import { readFileSync } from 'node:fs';
-          import extension from 'omp-typesafe/extension';
-          import { promptForApiKey, loginWithPrompt, ensureApiKey } from 'omp-typesafe/ui';
+          import extension from '@hexorx/omp-typesafe/extension';
+          import { promptForApiKey, loginWithPrompt, ensureApiKey } from '@hexorx/omp-typesafe/ui';
           assert.equal(typeof extension, 'function');
           for (const helper of [promptForApiKey, loginWithPrompt, ensureApiKey]) assert.equal(typeof helper, 'function');
-          const metadataUrl = import.meta.resolve('omp-typesafe/package.json');
+          const metadataUrl = import.meta.resolve('@hexorx/omp-typesafe/package.json');
           const metadata = JSON.parse(readFileSync(new URL(metadataUrl), 'utf8'));
           for (const target of metadata.omp.extensions) {
             assert.equal((await import(new URL(target, metadataUrl).href)).default, extension);
@@ -160,7 +165,7 @@ jobs:
       - name: Checksum the verified tarball
         run: |
           cd "$RUNNER_TEMP/package"
-          sha256sum omp-typesafe-*.tgz > SHA256SUMS
+          sha256sum hexorx-omp-typesafe-*.tgz > SHA256SUMS
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: npm-package
@@ -206,5 +211,5 @@ jobs:
         run: |
           cd "$RUNNER_TEMP/package"
           sha256sum --check SHA256SUMS
-          gh release create "$RELEASE_TAG" omp-typesafe-*.tgz SHA256SUMS \
+          gh release create "$RELEASE_TAG" hexorx-omp-typesafe-*.tgz SHA256SUMS \
             --verify-tag --draft --title "$RELEASE_TAG" --notes-file release-notes.md

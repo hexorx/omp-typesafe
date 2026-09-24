@@ -1,7 +1,7 @@
 import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
 import { ask, authState, createTypeSafe, choice, describeAuth, noul } from "../src/index.js";
 
-// A separate extension using the public API. Installed consumers import from "omp-typesafe".
+// A separate extension using the public API. Installed consumers import from "@hexorx/omp-typesafe".
 // It owns its own consent and request budget; it does not reuse /typesafe enable.
 export default function decisionExample(pi: ExtensionAPI): void {
   pi.registerCommand("decision-demo", {

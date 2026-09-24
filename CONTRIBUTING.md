@@ -1,10 +1,10 @@
-# Contributing to omp-typesafe
+# Contributing to @hexorx/omp-typesafe
 
-omp-typesafe is the TypeSafe client other omp extensions build on: key storage, consent, budgets, validated responses, and the `typesafe_evaluate` tool. A small, predictable surface is the feature. Please keep it that way.
+`@hexorx/omp-typesafe` is the TypeSafe client other omp extensions build on: key storage, consent, budgets, validated responses, and the `typesafe_evaluate` tool. A small, predictable surface is the feature. Please keep it that way.
 
 ## Report
 
-- **A bug.** Use the "Bug" template with the omp and omp-typesafe versions, the error text omp showed, and the smallest sequence that reproduces it. `/typesafe status` output helps.
+- **A bug.** Use the "Bug" template with the omp and `@hexorx/omp-typesafe` versions, the error text omp showed, and the smallest sequence that reproduces it. `/typesafe status` output helps.
 - **A gap for extension authors.** Use the "Extension author request" template: what you are building, what the client does not let you do, and the smallest API that would.
 - **Security.** A way to expose a key, an upstream response body, or submitted content: use the private security advisory, not a public issue.
 
