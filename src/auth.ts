@@ -2,7 +2,7 @@ import { chmodSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync }
 import { join } from "node:path";
 import { DEFAULT_BACKEND, TYPESAFE_KEY_ENV, backendConfig, usesTypesafeKey } from "./backends.js";
 import type { TypeSafeBackend } from "./backends.js";
-import { credentialsPath, keySituation, keySourceLabel, piTypesafeDir } from "./credentials.js";
+import { credentialsPath, keySituation, keySourceLabel, typesafeDir } from "./credentials.js";
 import type { KeySource } from "./credentials.js";
 import { TypeSafeIntegrationError } from "./errors.js";
 import type { IntegrationErrorCode } from "./errors.js";
@@ -53,7 +53,7 @@ export interface AuthState {
 
 /** The auth-state file: one small, owner-only record that outlives the process that wrote it. */
 export function authStatePath(): string {
-  return join(piTypesafeDir(), "auth-state.json");
+  return join(typesafeDir(), "auth-state.json");
 }
 
 function readState(path: string): { verifiedAt?: string; lastFailure?: AuthFailure } {
@@ -80,7 +80,7 @@ function readState(path: string): { verifiedAt?: string; lastFailure?: AuthFailu
 function writeState(path: string, state: { verifiedAt?: string; lastFailure?: AuthFailure }): void {
   const temporary = `${path}.${process.pid}.tmp`;
   try {
-    mkdirSync(piTypesafeDir(), { recursive: true, mode: 0o700 });
+    mkdirSync(typesafeDir(), { recursive: true, mode: 0o700 });
     writeFileSync(temporary, `${JSON.stringify({ version: AUTH_VERSION, ...state }, null, 2)}\n`, { mode: 0o600, flag: "w" });
     chmodSync(temporary, 0o600);
     renameSync(temporary, path);

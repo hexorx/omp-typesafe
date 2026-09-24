@@ -1,23 +1,28 @@
+// @ts-nocheck — the harness calls the factory through a structural fake of ExtensionAPI.
 import assert from "node:assert/strict";
 import { existsSync, statSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { after, before, test } from "node:test";
-import { DefaultResourceLoader, SettingsManager } from "@earendil-works/pi-coding-agent";
-import type { Extension, RegisteredCommand, RegisteredTool } from "@earendil-works/pi-coding-agent";
-import { visibleWidth } from "@earendil-works/pi-tui";
+import { z } from "@oh-my-pi/omptype/zod";
+import { visibleWidth } from "@oh-my-pi/pi-tui";
+import extensionFactory from "../src/extension.js";
 import { parseEvaluationRequest } from "../src/index.js";
 
 let temporary: string;
-let extension: Extension;
-let tool: RegisteredTool;
-let command: RegisteredCommand;
+const tools = new Map<string, { definition: any }>();
+const commands = new Map<string, any>();
+const registeredHandlers = new Map<string, Array<(...args: any[]) => unknown>>();
+let tool: { definition: any };
+let command: any;
 const savedKey = process.env.TYPESAFE_API_KEY;
 const savedEnabled = process.env.PI_TYPESAFE_ENABLED;
 const savedAgentDir = process.env.PI_CODING_AGENT_DIR;
 const originalFetch = globalThis.fetch;
 const notices: string[] = [];
+const sent: unknown[] = [];
+const entries: Array<{ type: string; data: unknown }> = [];
 let confirmResult = true;
 let confirmations = 0;
 let editorText: string | undefined;
@@ -50,21 +55,21 @@ before(async () => {
     networkCalls++;
     return Response.json({ model: "jev-test", answers: { yes: { type: "noul", noul: 0.9 } }, usage: { input_tokens: 12, output_tokens: 0 } });
   };
-  const loader = new DefaultResourceLoader({
-    cwd: temporary,
-    agentDir: temporary,
-    settingsManager: SettingsManager.inMemory(),
-    noExtensions: true, noSkills: true, noPromptTemplates: true, noThemes: true, noContextFiles: true,
-    additionalExtensionPaths: [resolve("src/extension.ts")],
-  });
-  await loader.reload();
-  const result = loader.getExtensions();
-  assert.deepEqual(result.errors, [], "native Pi loader must accept the extension");
-  const loaded = result.extensions[0];
-  assert.ok(loaded);
-  extension = loaded;
-  const registeredTool = extension.tools.get("typesafe_evaluate");
-  const registeredCommand = extension.commands.get("typesafe");
+  extensionFactory({
+    zod: z,
+    on(event: string, handler: (...args: any[]) => unknown) {
+      const list = registeredHandlers.get(event) ?? [];
+      list.push(handler);
+      registeredHandlers.set(event, list);
+    },
+    registerTool(definition: { name: string }) { tools.set(definition.name, { definition }); },
+    registerCommand(name: string, options: object) { commands.set(name, { name, ...options }); },
+    sendMessage(message: unknown) { sent.push(message); },
+    appendEntry(type: string, data: unknown) { entries.push({ type, data }); },
+    logger: { info() {}, warn() {}, error() {} },
+  } as never);
+  const registeredTool = tools.get("typesafe_evaluate");
+  const registeredCommand = commands.get("typesafe");
   assert.ok(registeredTool);
   assert.ok(registeredCommand);
   tool = registeredTool;
@@ -79,7 +84,7 @@ after(async () => {
   if (temporary) await rm(temporary, { recursive: true, force: true });
 });
 
-test("Pi loads a tool, a slash command, and a result renderer without network calls", async () => {
+test("omp extension registers a tool and a slash command without network calls", async () => {
   assert.equal(networkCalls, 0);
   assert.equal(tool.definition.name, "typesafe_evaluate");
   const completions = await command.getArgumentCompletions?.("pla");
@@ -110,6 +115,17 @@ test("setup and status never display the API key", async () => {
 test("status names the model the configured backend actually sends", async () => {
   await runCommand("status");
   assert.ok(notices.at(-1)?.includes("Model: jev-latest."));
+});
+
+test("headless status stays out of model context", async () => {
+  const sentBefore = sent.length;
+  const entriesBefore = entries.length;
+  await runCommand("status", { hasUI: false, ui });
+  assert.equal(sent.length, sentBefore);
+  const recorded = entries.slice(entriesBefore);
+  assert.equal(recorded.length, 1);
+  assert.equal(recorded[0]?.type, "typesafe-status");
+  assert.equal(notices.some(text => text.includes("offline-test-key")), false);
 });
 
 test("login refuses to shadow an environment key", async () => {
@@ -176,7 +192,7 @@ test("test command requires confirmation and does not enable agent calls", async
 
 test("login verifies, stores with owner-only permissions, and never echoes the key", async () => {
   delete process.env.TYPESAFE_API_KEY;
-  const storedPath = join(temporary, "pi-typesafe", "auth.json");
+  const storedPath = join(temporary, "omp-typesafe", "auth.json");
   customResult = undefined;
   await runCommand("login");
   assert.ok(notices.at(-1)?.includes("cancelled"));
@@ -210,12 +226,12 @@ test("login verifies, stores with owner-only permissions, and never echoes the k
 });
 
 test("new sessions reset opt-in; headless opt-in is explicit", async () => {
-  const handlers = extension.handlers.get("session_start");
+  const handlers = registeredHandlers.get("session_start");
   assert.ok(handlers?.length);
-  for (const handler of handlers) await Reflect.apply(handler, extension, [{ reason: "new" }, ctx]);
+  for (const handler of handlers) await Reflect.apply(handler, undefined, [{ reason: "new" }, ctx]);
   await assert.rejects(runTool(), /disabled/);
   process.env.PI_TYPESAFE_ENABLED = "1";
-  for (const handler of handlers) await Reflect.apply(handler, extension, [{ reason: "startup" }, ctx]);
+  for (const handler of handlers) await Reflect.apply(handler, undefined, [{ reason: "startup" }, ctx]);
   await runTool();
   assert.equal(networkCalls, 3);
   await runCommand("status");
@@ -225,23 +241,23 @@ test("new sessions reset opt-in; headless opt-in is explicit", async () => {
 test("an enabled session with no key announces that judgments are skipped", async () => {
   delete process.env.TYPESAFE_API_KEY;
   process.env.PI_TYPESAFE_ENABLED = "1";
-  const handlers = extension.handlers.get("session_start") ?? [];
+  const handlers = registeredHandlers.get("session_start") ?? [];
   const before = notices.length;
-  for (const handler of handlers) await Reflect.apply(handler, extension, [{ reason: "startup" }, ctx]);
+  for (const handler of handlers) await Reflect.apply(handler, undefined, [{ reason: "startup" }, ctx]);
   const said = notices.slice(before).join("\n");
   assert.ok(said.includes("judgments are skipped"));
   assert.ok(said.includes("TypeSafe key: missing"));
   // A key that appears later silences the next startup notice.
   process.env.TYPESAFE_API_KEY = "offline-test-key";
   const again = notices.length;
-  for (const handler of handlers) await Reflect.apply(handler, extension, [{ reason: "reload" }, ctx]);
+  for (const handler of handlers) await Reflect.apply(handler, undefined, [{ reason: "reload" }, ctx]);
   assert.equal(notices.slice(again).some(text => text.includes("judgments are skipped")), false);
 });
 
 test("a rejected key is called out once per session and shows up in status", async () => {
   process.env.PI_TYPESAFE_ENABLED = "1";
-  const handlers = extension.handlers.get("session_start") ?? [];
-  for (const handler of handlers) await Reflect.apply(handler, extension, [{ reason: "startup" }, ctx]);
+  const handlers = registeredHandlers.get("session_start") ?? [];
+  for (const handler of handlers) await Reflect.apply(handler, undefined, [{ reason: "startup" }, ctx]);
   const before = notices.length;
   const offlineStub = globalThis.fetch;
   globalThis.fetch = async () => Response.json({ error: { message: "invalid key" } }, { status: 401 });
@@ -261,8 +277,8 @@ test("a rejected key is called out once per session and shows up in status", asy
 
 test("the registered tool admits the same near-miss aliases as the library", async () => {
   process.env.PI_TYPESAFE_ENABLED = "1";
-  const handlers = extension.handlers.get("session_start");
-  for (const handler of handlers ?? []) await Reflect.apply(handler, extension, [{ reason: "startup" }, ctx]);
+  const handlers = registeredHandlers.get("session_start");
+  for (const handler of handlers ?? []) await Reflect.apply(handler, undefined, [{ reason: "startup" }, ctx]);
   const before = networkCalls;
   const result = await Reflect.apply(tool.definition.execute, tool.definition, [
     "test-call",

@@ -2,7 +2,17 @@
 
 ## Unreleased
 
-<!-- Empty. Next release starts here. -->
+### Fixed
+
+- Headless `/typesafe` output and startup warnings stay out of model context. They go to the omp log and a `typesafe-status` session entry; `sendMessage` is no longer used for them.
+
+## 0.1.0
+
+### Changed
+
+- omp port of [pi-typesafe](https://github.com/DevMortimer/pi-typesafe) 0.7.4. The extension loads through `omp.extensions`, talks to `@oh-my-pi/pi-coding-agent`, and stores the key and usage ledger under `~/.omp/agent/omp-typesafe` (`PI_CODING_AGENT_DIR` still overrides the agent directory).
+- Headless opt-in is `OMP_TYPESAFE_ENABLED=1` (`PI_TYPESAFE_ENABLED=1` still counts). Day caps read `OMP_TYPESAFE_MAX_*`, and a set `PI_TYPESAFE_MAX_*` can only lower them.
+- The agent tool schema is loose on purpose: omp has no `prepareArguments` hook, so near-miss question aliases are normalized inside `execute`. Question-writing guidance is in the tool description. Playground results are notified and stored with `appendEntry`, which stays out of model context.
 
 ## 0.7.4
 

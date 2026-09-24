@@ -98,7 +98,7 @@ test("the default usage path sits with the key store", () => {
   const saved = process.env.PI_CODING_AGENT_DIR;
   process.env.PI_CODING_AGENT_DIR = workspace;
   try {
-    assert.equal(usagePath(), join(workspace, "pi-typesafe", "usage.json"));
+    assert.equal(usagePath(), join(workspace, "omp-typesafe", "usage.json"));
     assert.equal(localDay(at(7)), "2026-01-07");
   } finally {
     if (saved === undefined) delete process.env.PI_CODING_AGENT_DIR; else process.env.PI_CODING_AGENT_DIR = saved;

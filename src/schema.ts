@@ -1,7 +1,16 @@
+import { createRequire } from "node:module";
+import { pathToFileURL } from "node:url";
 import type { SystemOneRequest } from "@typesafe-ai/sdk";
-import { Type } from "typebox";
-import { Check, Errors } from "typebox/value";
 import { TypeSafeIntegrationError } from "./errors.js";
+
+// omp rewrites a bare `typebox` import onto its tool-schema shim, whose values
+// are not real TypeBox schemas. Load the package by file URL from the
+// unremapped `typebox/value` entry so Check/Errors stay the real validators
+// when this module is imported by the extension.
+const nodeRequire = createRequire(import.meta.url);
+const valueFile = nodeRequire.resolve("typebox/value");
+const Type = await import(new URL("../typebox.mjs", pathToFileURL(valueFile)).href) as typeof import("typebox").Type;
+const { Check, Errors } = await import(pathToFileURL(valueFile).href) as typeof import("typebox/value");
 
 /** Default UTF-8 JSON byte budget for one evaluation request; the tool and the client share it. */
 export const DEFAULT_MAX_INPUT_BYTES = 65_536;

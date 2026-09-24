@@ -1,5 +1,5 @@
-import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
-import { Container, CURSOR_MARKER, type Focusable, Input, Key, matchesKey, Text, truncateToWidth } from "@earendil-works/pi-tui";
+import type { ExtensionCommandContext } from "@oh-my-pi/pi-coding-agent";
+import { Container, CURSOR_MARKER, type Focusable, Input, Key, matchesKey, Text, truncateToWidth } from "@oh-my-pi/pi-tui";
 
 /** Single-line input that renders bullets instead of the typed value. */
 class SecretInput extends Input {
@@ -42,7 +42,7 @@ class KeyPrompt extends Container implements Focusable {
   }
 }
 
-/** Hidden input in the TUI; falls back to Pi's plain input dialog where custom components are unavailable. */
+/** Hidden input in the TUI; falls back to omp's plain input dialog where custom components are unavailable. */
 export async function promptForApiKey(ctx: ExtensionCommandContext): Promise<string | undefined> {
   if (typeof ctx.ui.custom === "function") {
     return ctx.ui.custom<string | undefined>((_tui, theme, _keybindings, done) => new KeyPrompt(theme, done));

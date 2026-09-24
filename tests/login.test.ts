@@ -4,7 +4,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, beforeEach, test } from "node:test";
-import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
+import type { ExtensionCommandContext } from "@oh-my-pi/pi-coding-agent";
 import { TypeSafeIntegrationError } from "../src/errors.js";
 import { ensureApiKey, loginWithPrompt } from "../src/login.js";
 
@@ -14,7 +14,7 @@ const savedAgentDir = process.env.PI_CODING_AGENT_DIR;
 const originalFetch = globalThis.fetch;
 let customResult: string | undefined;
 let modelListCalls = 0;
-const storedPath = () => join(temporary, "pi-typesafe", "auth.json");
+const storedPath = () => join(temporary, "omp-typesafe", "auth.json");
 const ctx = (hasUI = true) => ({ hasUI, ui: { custom: async () => customResult, input: async () => { throw new Error("plain input must not be used"); } } }) as unknown as ExtensionCommandContext;
 
 before(async () => {

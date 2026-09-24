@@ -86,7 +86,7 @@ inspect any existing draft and assets before retrying a failed delivery.
 5. Wait for its `CI` run and review the draft. Download its tarball and
    `SHA256SUMS` to an empty directory, then run `sha256sum --check SHA256SUMS`
    (`shasum -a 256 --check SHA256SUMS` on macOS).
-6. Publish that verified tarball yourself with `npm publish ./pi-typesafe-X.Y.Z.tgz`,
+6. Publish that verified tarball yourself with `npm publish ./omp-typesafe-X.Y.Z.tgz`,
    using maintainer credentials and the normal npm authentication checks. Then
    publish the GitHub draft manually. Do not publish a PR artifact or run
    `npm publish` from an unreviewed branch.

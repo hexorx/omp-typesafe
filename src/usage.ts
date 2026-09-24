@@ -1,6 +1,6 @@
 import { chmodSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { piTypesafeDir } from "./credentials.js";
+import { typesafeDir } from "./credentials.js";
 
 /**
  * TypeSafe bills input tokens only; output is free. The default mirrors the $42-per-billion-input-token rate the README
@@ -58,7 +58,7 @@ export function localDay(now: Date = new Date()): string {
 
 /** The stored ledger. Alongside the key store so one directory holds every pi-typesafe file. */
 export function usagePath(): string {
-  return join(piTypesafeDir(), "usage.json");
+  return join(typesafeDir(), "usage.json");
 }
 
 /** Input-token cost, rounded to a micro-dollar so the number stays readable. */
@@ -123,7 +123,7 @@ function writeDays(path: string, days: Record<string, UsageTotals>): void {
   }
 }
 
-/** The caps a headless run may set without code: `PI_TYPESAFE_MAX_USD_PER_DAY` and its siblings. */
+/** The caps a headless run may set without code: `OMP_TYPESAFE_MAX_USD_PER_DAY` and its siblings. `PI_TYPESAFE_MAX_*` is still read; when both are set, the lower value wins. */
 export function capsFromEnvironment(env: NodeJS.ProcessEnv = process.env): SpendCaps {
   const number = (name: string): number | undefined => {
     const raw = env[name]?.trim();
@@ -131,9 +131,16 @@ export function capsFromEnvironment(env: NodeJS.ProcessEnv = process.env): Spend
     const value = Number(raw);
     return Number.isFinite(value) && value > 0 ? value : undefined;
   };
-  const maxRequestsPerDay = number("PI_TYPESAFE_MAX_REQUESTS_PER_DAY");
-  const maxInputTokensPerDay = number("PI_TYPESAFE_MAX_INPUT_TOKENS_PER_DAY");
-  const maxUsdPerDay = number("PI_TYPESAFE_MAX_USD_PER_DAY");
+  const lowest = (ompName: string, piName: string): number | undefined => {
+    const omp = number(ompName);
+    const pi = number(piName);
+    if (omp === undefined) return pi;
+    if (pi === undefined) return omp;
+    return Math.min(omp, pi);
+  };
+  const maxRequestsPerDay = lowest("OMP_TYPESAFE_MAX_REQUESTS_PER_DAY", "PI_TYPESAFE_MAX_REQUESTS_PER_DAY");
+  const maxInputTokensPerDay = lowest("OMP_TYPESAFE_MAX_INPUT_TOKENS_PER_DAY", "PI_TYPESAFE_MAX_INPUT_TOKENS_PER_DAY");
+  const maxUsdPerDay = lowest("OMP_TYPESAFE_MAX_USD_PER_DAY", "PI_TYPESAFE_MAX_USD_PER_DAY");
   return {
     ...(maxRequestsPerDay === undefined ? {} : { maxRequestsPerDay: Math.floor(maxRequestsPerDay) }),
     ...(maxInputTokensPerDay === undefined ? {} : { maxInputTokensPerDay: Math.floor(maxInputTokensPerDay) }),

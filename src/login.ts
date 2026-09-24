@@ -1,4 +1,4 @@
-import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
+import type { ExtensionCommandContext } from "@oh-my-pi/pi-coding-agent";
 import { DEFAULT_BACKEND, backendConfig, usesTypesafeKey } from "./backends.js";
 import type { TypeSafeBackend } from "./backends.js";
 import { createTypeSafe } from "./client.js";

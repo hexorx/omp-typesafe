@@ -15,18 +15,18 @@ export type KeySituation =
   | { readonly kind: "missing" }
   | { readonly kind: "unusable"; readonly path: string; readonly reason: string };
 
-/** Mirrors Pi's agent directory rule; every pi-typesafe file lives in this one directory. */
-export function piTypesafeDir(): string {
+/** Mirrors omp's agent directory rule; every typesafe file lives in this one directory. */
+export function typesafeDir(): string {
   const configured = process.env.PI_CODING_AGENT_DIR?.trim();
   const agentDir = configured
     ? (configured === "~" || configured.startsWith("~/") ? join(homedir(), configured.slice(1)) : configured)
-    : join(homedir(), ".pi", "agent");
-  return join(agentDir, "pi-typesafe");
+    : join(homedir(), ".omp", "agent");
+  return join(agentDir, "omp-typesafe");
 }
 
 /** Where the key lives, next to Pi's own auth.json. */
 export function credentialsPath(): string {
-  return join(piTypesafeDir(), "auth.json");
+  return join(typesafeDir(), "auth.json");
 }
 
 /** Accepts the key only when it is a plausible token; never logs or echoes the value. */

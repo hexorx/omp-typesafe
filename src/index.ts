@@ -10,7 +10,7 @@ export type { BatchEvaluation, BatchOptions, FanOutOptions, Settled } from "./ba
 export { authState, authStatePath, clearAuthState, describeAuth, recordAuthFailure, recordAuthVerified } from "./auth.js";
 export type { AuthFailure, AuthReport, AuthState } from "./auth.js";
 export {
-  clearStoredApiKey, credentialsPath, keySituation, keySourceLabel, normalizeApiKey, piTypesafeDir, resolveApiKey, storeApiKey,
+  clearStoredApiKey, credentialsPath, keySituation, keySourceLabel, normalizeApiKey, typesafeDir, resolveApiKey, storeApiKey,
 } from "./credentials.js";
 export type { KeySituation, KeySource } from "./credentials.js";
 export {

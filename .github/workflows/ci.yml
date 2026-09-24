@@ -50,6 +50,8 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           package-manager-cache: false
+      - name: Install Bun
+        run: npm install --global bun@1.2.21
       - run: npm ci
       - run: npm run check
 
@@ -67,6 +69,8 @@ jobs:
         with:
           node-version: "24"
           package-manager-cache: false
+      - name: Install Bun
+        run: npm install --global bun@1.2.21
       - name: Check package metadata
         run: |
           mkdir -p "$RUNNER_TEMP/package"
@@ -75,7 +79,7 @@ jobs:
           import { readFileSync } from 'node:fs';
           const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
           const lock = JSON.parse(readFileSync('package-lock.json', 'utf8'));
-          assert.equal(pkg.name, 'pi-typesafe');
+          assert.equal(pkg.name, 'omp-typesafe');
           assert.equal(lock.version, pkg.version, 'Lockfile version must match package.json');
           assert.equal(lock.packages[''].version, pkg.version, 'Lockfile root version must match package.json');
           NODE
@@ -97,36 +101,36 @@ jobs:
           writeFileSync(`${process.env.RUNNER_TEMP}/package/release-notes.md`, `${notes}\n`);
           NODE
       - run: npm ci
-      - name: Build and smoke-test the npm tarball without optional Pi peers
+      - name: Build and smoke-test the npm tarball without optional omp peers
         run: |
           npm pack --pack-destination "$RUNNER_TEMP/package"
           mkdir -p "$RUNNER_TEMP/package-smoke"
           printf '%s\n' '{"private":true,"type":"module"}' > "$RUNNER_TEMP/package-smoke/package.json"
           # Resolve dependencies as a consumer, without the checkout's lockfile or node_modules.
-          npm install --prefix "$RUNNER_TEMP/package-smoke" --ignore-scripts --omit=peer --no-audit --no-fund "$RUNNER_TEMP/package"/pi-typesafe-*.tgz
+          npm install --prefix "$RUNNER_TEMP/package-smoke" --ignore-scripts --omit=peer --no-audit --no-fund "$RUNNER_TEMP/package"/omp-typesafe-*.tgz
           cd "$RUNNER_TEMP/package-smoke"
           node --input-type=module <<'NODE'
           import assert from 'node:assert/strict';
           import { readFileSync, statSync } from 'node:fs';
           import { dirname, resolve } from 'node:path';
           import { fileURLToPath } from 'node:url';
-          import { createTypeSafe, noul } from 'pi-typesafe';
-          import { auc } from 'pi-typesafe/calibrate';
+          import { createTypeSafe, noul } from 'omp-typesafe';
+          import { auc } from 'omp-typesafe/calibrate';
           assert.equal(typeof createTypeSafe, 'function');
           assert.equal(noul('Is this a package smoke test?').type, 'noul');
           assert.equal(auc([{ label: false, score: 0 }, { label: true, score: 1 }]), 1);
-          const metadataPath = fileURLToPath(import.meta.resolve('pi-typesafe/package.json'));
+          const metadataPath = fileURLToPath(import.meta.resolve('omp-typesafe/package.json'));
           const metadata = JSON.parse(readFileSync(metadataPath, 'utf8'));
-          assert.equal(metadata.name, 'pi-typesafe');
+          assert.equal(metadata.name, 'omp-typesafe');
           for (const peer of Object.keys(metadata.peerDependencies)) {
             assert.throws(() => import.meta.resolve(peer), { code: 'ERR_MODULE_NOT_FOUND' });
           }
           const targets = Object.values(metadata.exports).flatMap(value => typeof value === 'string' ? [value] : Object.values(value));
-          for (const target of [...targets, ...metadata.pi.extensions, 'README.md', 'LICENSE']) {
+          for (const target of [...targets, ...metadata.omp.extensions, 'README.md', 'LICENSE']) {
             assert.ok(statSync(resolve(dirname(metadataPath), target)).isFile(), `Missing package entry: ${target}`);
           }
           NODE
-      - name: Smoke-test the Pi entry points with locked peers
+      - name: Smoke-test the omp entry points with locked peers
         run: |
           node --input-type=module <<'NODE'
           import { readFileSync, writeFileSync } from 'node:fs';
@@ -137,26 +141,26 @@ jobs:
           dependencies[pkg.name] = `file:${resolve(process.env.RUNNER_TEMP, 'package', `${pkg.name}-${pkg.version}.tgz`)}`;
           writeFileSync(`${process.env.RUNNER_TEMP}/package-smoke/package.json`, JSON.stringify({ private: true, type: 'module', dependencies }));
           NODE
-          # Add the locked Pi peers to the same isolated consumer installation.
+          # Add the locked omp peers to the same isolated consumer installation.
           npm install --prefix "$RUNNER_TEMP/package-smoke" --ignore-scripts --no-audit --no-fund
           cd "$RUNNER_TEMP/package-smoke"
-          node --input-type=module <<'NODE'
+          bun --input-type=module - <<'NODE'
           import assert from 'node:assert/strict';
           import { readFileSync } from 'node:fs';
-          import extension from 'pi-typesafe/extension';
-          import { promptForApiKey, loginWithPrompt, ensureApiKey } from 'pi-typesafe/ui';
+          import extension from 'omp-typesafe/extension';
+          import { promptForApiKey, loginWithPrompt, ensureApiKey } from 'omp-typesafe/ui';
           assert.equal(typeof extension, 'function');
           for (const helper of [promptForApiKey, loginWithPrompt, ensureApiKey]) assert.equal(typeof helper, 'function');
-          const metadataUrl = import.meta.resolve('pi-typesafe/package.json');
+          const metadataUrl = import.meta.resolve('omp-typesafe/package.json');
           const metadata = JSON.parse(readFileSync(new URL(metadataUrl), 'utf8'));
-          for (const target of metadata.pi.extensions) {
+          for (const target of metadata.omp.extensions) {
             assert.equal((await import(new URL(target, metadataUrl).href)).default, extension);
           }
           NODE
       - name: Checksum the verified tarball
         run: |
           cd "$RUNNER_TEMP/package"
-          sha256sum pi-typesafe-*.tgz > SHA256SUMS
+          sha256sum omp-typesafe-*.tgz > SHA256SUMS
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: npm-package
@@ -202,5 +206,5 @@ jobs:
         run: |
           cd "$RUNNER_TEMP/package"
           sha256sum --check SHA256SUMS
-          gh release create "$RELEASE_TAG" pi-typesafe-*.tgz SHA256SUMS \
+          gh release create "$RELEASE_TAG" omp-typesafe-*.tgz SHA256SUMS \
             --verify-tag --draft --title "$RELEASE_TAG" --notes-file release-notes.md

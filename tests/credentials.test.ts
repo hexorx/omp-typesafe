@@ -26,8 +26,8 @@ after(async () => {
   await rm(agentDir, { recursive: true, force: true });
 });
 
-test("credentials live under Pi's agent directory", () => {
-  assert.equal(credentialsPath(), join(agentDir, "pi-typesafe", "auth.json"));
+test("credentials live under omp's agent directory", () => {
+  assert.equal(credentialsPath(), join(agentDir, "omp-typesafe", "auth.json"));
 });
 
 test("store, read, and clear with owner-only permissions", () => {
@@ -35,7 +35,7 @@ test("store, read, and clear with owner-only permissions", () => {
   const path = storeApiKey(`  ${validKey}\n`);
   assert.equal(path, credentialsPath());
   assert.equal(statSync(path).mode & 0o777, 0o600);
-  assert.equal(statSync(join(agentDir, "pi-typesafe")).mode & 0o777, 0o700);
+  assert.equal(statSync(join(agentDir, "omp-typesafe")).mode & 0o777, 0o700);
   assert.deepEqual(JSON.parse(readFileSync(path, "utf8")), { apiKey: validKey });
   assert.deepEqual(resolveApiKey(), { key: validKey, source: "stored" });
   assert.equal(clearStoredApiKey(), true);
@@ -64,7 +64,7 @@ test("group- or world-readable credential files are refused", { skip: process.pl
 });
 
 test("corrupt or unexpected files are treated as no key", () => {
-  mkdirSync(join(agentDir, "pi-typesafe"), { recursive: true, mode: 0o700 });
+  mkdirSync(join(agentDir, "omp-typesafe"), { recursive: true, mode: 0o700 });
   for (const content of ["not json", "[]", "{\"apiKey\": 5}", "{}"]) {
     writeFileSync(credentialsPath(), content, { mode: 0o600 });
     assert.equal(readStoredApiKey(), undefined);

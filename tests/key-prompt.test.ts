@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
+import type { ExtensionCommandContext } from "@oh-my-pi/pi-coding-agent";
 import { promptForApiKey } from "../src/key-prompt.js";
 
 const theme = { fg: (_color: string, text: string) => text, bold: (text: string) => text };
